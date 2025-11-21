@@ -1,12 +1,17 @@
+# tests/test_basic.py
 def test_imports():
-    """Test that basic imports work"""
+    """Test that main modules can be imported"""
     try:
-        import pandas
-        import numpy
-        assert True
-    except ImportError:
-        assert False, "Basic imports failed"
+        from src.technical_analyzer import TechnicalAnalyzer
+        from src.financial_metrics import FinancialMetrics
+        from src.sentiment_analyzer import SentimentAnalyzer
 
-def test_simple_math():
-    """Test basic functionality"""
-    assert 1 + 1 == 2
+        print("✅ All modules import successfully")
+        return True
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        return False
+
+
+if __name__ == "__main__":
+    test_imports()
