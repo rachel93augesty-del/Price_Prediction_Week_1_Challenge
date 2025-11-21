@@ -1,0 +1,71 @@
+name: Python Tests
+
+on:
+  push:
+    branches: [ main, task-1 ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.13]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: py --version
+
+    - name: Install dependencies
+      run: |
+        py -m pip install --upgrade pip
+        py -m pip install -r requirements.txt
+
+    - name: Run basic package validation
+      run: |
+        py -c "import pandas; print('✅ Pandas installed successfully')"
+        py -c "import numpy; print('✅ Numpy installed successfully')"
+        py -c "import matplotlib; print('✅ Matplotlib installed successfully')"
+        py -c "import seaborn; print('✅ Seaborn installed successfully')"
+        py -c "import sklearn; print('✅ Scikit-learn installed successfully')"
+
+    - name: Run basic tests
+      run: |
+        py -c "
+        import sys
+        # Test basic imports
+        try:
+            import pandas as pd
+            import numpy as np
+            print('All core packages imported successfully')
+            sys.exit(0)
+        except ImportError as e:
+            print(f'Import error: {e}')
+            sys.exit(1)
+        "
+
+    - name: Test data loading capability
+      run: |
+        py -c "
+        # Test basic data manipulation
+        import pandas as pd
+        import numpy as np
+        
+        # Create test data
+        df = pd.DataFrame({
+            'headline': ['Test news 1', 'Test news 2'],
+            'sentiment': [0.5, -0.2]
+        })
+        print('DataFrame creation test passed')
+        print(df.head())
+        "
