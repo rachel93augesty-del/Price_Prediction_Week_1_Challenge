@@ -1,10 +1,38 @@
-# Make sure .gitignore excludes large data files
-echo "" >> .gitignore
-echo "# Exclude large data files" >> .gitignore
-echo "data/raw/*.csv" >> .gitignore
-echo "data/processed/*.csv" >> .gitignore
-echo "!data/raw/.gitkeep" >> .gitignore
-echo "!data/processed/.gitkeep" >> .gitignore
+# Data files
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.json
 
-# Add placeholder files so folders are tracked
-echo "# Placeholder for raw data" > data/raw/.gitkeep
+# Large files
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+
+# Images (except maybe small ones)
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Virtual environment
+venv/
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
