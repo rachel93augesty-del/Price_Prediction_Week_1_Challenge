@@ -1,38 +1,19 @@
-# Data files
-data/raw/
+﻿# Data files
 data/processed/
+data/raw/
 *.csv
-*.xlsx
-*.json
 
-# Large files
-*.pkl
-*.pickle
-*.h5
-*.hdf5
-
-# Images (except maybe small ones)
+# Image files
 *.png
 *.jpg
 *.jpeg
-*.gif
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# Virtual environment
-venv/
-.env
-.env.local
-
-# OS files
-.DS_Store
-Thumbs.db
 
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+venv/
+
+# IDE
+.vscode/
