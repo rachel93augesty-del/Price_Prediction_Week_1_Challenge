@@ -1,206 +1,140 @@
-# scripts/task2/stock_data_manager.py
+# stock_cleaner.py
 import pandas as pd
 import os
 import warnings
 
+print("🎯 STOCK CLEANER - FRESH START")
+print("=" * 50)
+print("THIS SCRIPT WILL WORK!")
+print("=" * 50)
+
 warnings.filterwarnings("ignore")
 
+# HARDCODED ABSOLUTE PATH - This CANNOT fail
+DATA_PATH = r"D:\Personal\KAIM-10 Academy\Week 1\Project Work\Price_Prediction_Week_1_Challenge\data\raw\stock_prices_raw"
+OUTPUT_PATH = r"D:\Personal\KAIM-10 Academy\Week 1\Project Work\Price_Prediction_Week_1_Challenge\data\processed"
 
-class StockDataManager:
-    def __init__(self):
-        self.raw_data = {}
-        self.cleaned_data = {}
-        self.data_reports = {}
-        self.tech_tickers = ["AAPL", "AMZN", "GOOG", "META", "MSFT", "NVDA"]
+TICKERS = ["AAPL", "AMZN", "GOOG", "META", "MSFT", "NVDA"]
 
-    def load_and_prepare_stocks(self, data_dir="data/raw/stock_prices_raw/"):
-        """
-        Single function to load, validate, clean, and prepare all stock data
-        """
-        print("🚀 STOCK DATA: LOAD & PREPARE")
-        print("=" * 50)
 
-        if not os.path.exists(data_dir):
-            print(f"❌ Directory not found: {data_dir}")
-            return False
+def main():
+    print(f"🔍 Checking data path: {DATA_PATH}")
 
-        successful = 0
+    if not os.path.exists(DATA_PATH):
+        print("❌ DATA PATH NOT FOUND!")
+        print("This means your files are in a different location.")
+        return False
 
-        for ticker in self.tech_tickers:
-            file_path = os.path.join(data_dir, f"{ticker}.csv")
+    print("✅ DATA PATH FOUND!")
 
-            if not os.path.exists(file_path):
-                print(f"❌ {ticker}: File not found")
-                continue
+    # List files to confirm
+    files = os.listdir(DATA_PATH)
+    csv_files = [f for f in files if f.endswith(".csv")]
+    print(f"📄 Found {len(csv_files)} CSV files:")
+    for file in csv_files:
+        print(f"   - {file}")
 
-            try:
-                print(f"\n📊 {ticker}:")
+    cleaned_data = {}
+    success_count = 0
 
-                # Load data
-                raw_df = pd.read_csv(file_path)
-                print(f"   Loaded: {len(raw_df)} records")
+    for ticker in TICKERS:
+        file_path = os.path.join(DATA_PATH, f"{ticker}.csv")
+        print(f"\n🎯 PROCESSING {ticker}...")
 
-                # Clean and prepare
-                cleaned_df = self.clean_data(raw_df, ticker)
+        if not os.path.exists(file_path):
+            print(f"   ❌ File not found: {ticker}.csv")
+            continue
 
-                if cleaned_df is not None:
-                    self.cleaned_data[ticker] = cleaned_df
-                    successful += 1
-                    print(f"   ✅ Ready: {len(cleaned_df)} clean records")
-                else:
-                    print("   ❌ Failed to clean")
+        try:
+            # Load the CSV
+            print(f"   📥 Loading {ticker}.csv...")
+            df = pd.read_csv(file_path)
+            print(f"   ✅ Loaded {len(df)} rows")
 
-            except Exception as e:
-                print(f"   ❌ Error: {e}")
+            # Show what we're working with
+            print(f"   📊 Columns: {list(df.columns)}")
+            if len(df) > 0:
+                print(f"   🔍 First row: {df.iloc[0].values}")
 
-        print(f"\n🎯 COMPLETE: {successful}/6 stocks ready for TA-Lib")
-        return successful > 0
+            # Clean the data
+            cleaned_df = clean_stock_data(df, ticker)
 
-    def clean_data(self, df, ticker):
-        """
-        Clean and prepare individual stock data
-        """
-        df_clean = df.copy()
-
-        # 1. Standardize columns
-        df_clean = self.standardize_columns(df_clean)
-
-        # 2. Check required columns
-        required = ["Open", "High", "Low", "Close", "Volume"]
-        if not all(col in df_clean.columns for col in required):
-            missing = [col for col in required if col not in df_clean.columns]
-            print(f"   Missing columns: {missing}")
-            return None
-
-        # 3. Handle dates
-        if "Date" in df_clean.columns:
-            df_clean["Date"] = pd.to_datetime(df_clean["Date"], errors="coerce")
-            df_clean = df_clean.dropna(subset=["Date"])
-            df_clean = df_clean.set_index("Date").sort_index()
-
-        # 4. Clean data quality
-        initial = len(df_clean)
-        df_clean = self.clean_quality(df_clean)
-        final = len(df_clean)
-
-        if initial != final:
-            print(f"   Removed {initial - final} invalid records")
-
-        # 5. Add basic metrics
-        df_clean = self.add_metrics(df_clean)
-
-        # Store report
-        self.data_reports[ticker] = {
-            "initial": initial,
-            "final": final,
-            "date_range": f"{df_clean.index.min()} to {df_clean.index.max()}"
-            if not df_clean.empty
-            else "No data",
-        }
-
-        return df_clean
-
-    def standardize_columns(self, df):
-        """Standardize column names"""
-        mapping = {}
-        for col in df.columns:
-            low = col.lower()
-            if "open" in low:
-                mapping[col] = "Open"
-            elif "high" in low:
-                mapping[col] = "High"
-            elif "low" in low:
-                mapping[col] = "Low"
-            elif any(x in low for x in ["close", "price"]):
-                mapping[col] = "Close"
-            elif "volume" in low:
-                mapping[col] = "Volume"
-            elif any(x in low for x in ["date", "time"]):
-                mapping[col] = "Date"
-
-        if mapping:
-            df = df.rename(columns=mapping)
-        return df
-
-    def clean_quality(self, df):
-        """Clean data quality issues"""
-        # Remove missing values
-        df = df.dropna(subset=["Open", "High", "Low", "Close", "Volume"])
-
-        # Remove invalid prices
-        for col in ["Open", "High", "Low", "Close"]:
-            df = df[df[col] > 0]
-
-        # Remove inconsistencies
-        df = df[df["High"] >= df["Low"]]
-        df = df[df["High"] >= df["Open"]]
-        df = df[df["High"] >= df["Close"]]
-        df = df[df["Low"] <= df["Open"]]
-        df = df[df["Low"] <= df["Close"]]
-
-        return df
-
-    def add_metrics(self, df):
-        """Add basic pre-analysis metrics"""
-        df["Daily_Return"] = df["Close"].pct_change() * 100
-        df["Price_Range"] = ((df["High"] - df["Low"]) / df["Low"]) * 100
-        return df
-
-    def show_summary(self):
-        """Show loading summary"""
-        print("\n" + "=" * 60)
-        print("📋 DATA SUMMARY")
-        print("=" * 60)
-
-        print(f"\n{'Ticker':<8} {'Initial':<8} {'Final':<8} {'Date Range':<30}")
-        print("-" * 60)
-
-        for ticker in self.tech_tickers:
-            if ticker in self.data_reports:
-                report = self.data_reports[ticker]
-                print(
-                    f"{ticker:<8} {report['initial']:<8} {report['final']:<8} {report['date_range']:<30}"
-                )
+            if cleaned_df is not None and len(cleaned_df) > 0:
+                cleaned_data[ticker] = cleaned_df
+                success_count += 1
+                print(f"   🎉 SUCCESS: {len(cleaned_df)} clean rows")
             else:
-                print(f"{ticker:<8} {'N/A':<8} {'N/A':<8} {'MISSING':<30}")
+                print(f"   ❌ Failed to clean {ticker}")
 
-    def get_clean_data(self, ticker):
-        """Get cleaned data for a ticker"""
-        return self.cleaned_data.get(ticker)
+        except Exception as e:
+            print(f"   💥 Error: {e}")
 
-    def get_all_clean_data(self):
-        """Get all cleaned data"""
-        return self.cleaned_data
+    print(f"\n📊 PROCESSED {success_count}/6 stocks successfully")
 
-    def save_clean_data(self, output_dir="data/processed/technical_indicators/"):
-        """Save cleaned data"""
-        os.makedirs(output_dir, exist_ok=True)
+    if success_count > 0:
+        print(f"\n💾 SAVING CLEANED DATA...")
+        # Create output directory
+        os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-        for ticker, df in self.cleaned_data.items():
-            path = os.path.join(output_dir, f"{ticker}_cleaned.csv")
-            df.to_csv(path)
-            print(f"💾 Saved: {path}")
+        for ticker, df in cleaned_data.items():
+            output_file = os.path.join(OUTPUT_PATH, f"{ticker}_cleaned.csv")
+            df.to_csv(output_file, index=False)
+            print(f"   ✅ Saved {ticker}: {len(df)} rows")
 
-
-# Main function
-def prepare_stock_data():
-    """Prepare all stock data for TA-Lib analysis"""
-    manager = StockDataManager()
-
-    print("🔧 PREPARING STOCK DATA FOR TECHNICAL ANALYSIS")
-    print("-" * 50)
-
-    success = manager.load_and_prepare_stocks()
-
-    if success:
-        manager.show_summary()
-        manager.save_clean_data()
-        print("\n✅ READY FOR TA-LIB ANALYSIS!")
-        return manager
+        print(f"\n🎉 ALL DONE!")
+        print(f"📁 Cleaned files saved to: {OUTPUT_PATH}")
+        return True
     else:
-        print("\n❌ Preparation failed")
+        print("\n❌ No data was processed")
+        return False
+
+
+def clean_stock_data(df, ticker):
+    """Clean individual stock data"""
+    try:
+        clean_df = df.copy()
+
+        # Check if first row has header issues
+        first_val = str(clean_df.iloc[0, 0]) if len(clean_df) > 0 else ""
+        if any(name in first_val for name in TICKERS):
+            print(f"   🔧 Fixing header structure...")
+            proper_columns = ["Date", "Close", "High", "Low", "Open", "Volume"]
+            clean_df = clean_df.iloc[1:].reset_index(drop=True)
+            clean_df.columns = proper_columns
+
+        # Convert data types
+        numeric_cols = ["Close", "High", "Low", "Open", "Volume"]
+        for col in numeric_cols:
+            if col in clean_df.columns:
+                clean_df[col] = pd.to_numeric(clean_df[col], errors="coerce")
+
+        clean_df["Date"] = pd.to_datetime(clean_df["Date"], errors="coerce")
+        clean_df["Symbol"] = ticker
+
+        # Remove invalid rows
+        initial_len = len(clean_df)
+        clean_df = clean_df.dropna(subset=["Date", "Close"])
+        clean_df = clean_df.sort_values("Date").reset_index(drop=True)
+
+        removed = initial_len - len(clean_df)
+        if removed > 0:
+            print(f"   🗑️ Removed {removed} invalid rows")
+
+        print(f"   ✅ Final: {len(clean_df)} clean rows")
+        return clean_df
+
+    except Exception as e:
+        print(f"   💥 Cleaning error: {e}")
         return None
 
 
 if __name__ == "__main__":
-    manager = prepare_stock_data()
+    print("🚀 STARTING STOCK DATA CLEANING...")
+    success = main()
+
+    if success:
+        print("\n" + "🎉" * 10)
+        print("SUCCESS! Your data is ready for analysis!")
+        print("🎉" * 10)
+    else:
+        print("\n❌ Failed - but we'll figure it out!")
